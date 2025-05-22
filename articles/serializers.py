@@ -1,15 +1,24 @@
 from rest_framework import serializers
-from .models import NewsArticles, ArticleLike, ArticleView, ArticleScrap
+from .models import NewsArticle, ArticleLike, ArticleView, ArticleScrap
 
 # 뉴스 기사 아이디로 기사 조회하는 시리얼라이저
-class NewsArticlesSerializer(serializers.ModelSerializer):
+class NewsArticleSerializer(serializers.ModelSerializer):
     class Meta:
-        model = NewsArticles
+        model = NewsArticle
         fields = '__all__'
 
-class SimpleNewsArticlesSerializer(serializers.ModelSerializer):
+    def get_view_count(self, obj):
+        return ArticleView.objects.filter(article=obj).count()
+
+    def get_like_count(self, obj):
+        return ArticleLike.objects.filter(article=obj).count()
+    
+    def get_scrap_count(self, obj):
+        return ArticleScrap.objects.filter(article=obj).count()
+
+class SimpleNewsArticleSerializer(serializers.ModelSerializer):
     class Meta:
-        model = NewsArticles
+        model = NewsArticle
         fields = ['id', 'title']
 
 # 좋아요 시리얼라이저

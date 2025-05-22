@@ -363,6 +363,23 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
+
+### 7. Elasticsearch 관련 설정
+
+```python
+# ./config/settings.py
+
+ES_CONFIG = {
+    "host": "localhost",
+    "port": 9200,
+    "index": "news_articles",
+    "user": "elastic",
+    "password": "elastic123",
+    "use_ssl": False
+}
+```
+
+
 ## Reference
 
 - [\[DRF\] dj-rest-auth를 활용한 (아주 간편한) JWT 회원가입/로그인

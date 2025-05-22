@@ -214,3 +214,26 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# CSRF 설정
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000']
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Vue.js 개발 서버
+    "http://127.0.0.1:3000",
+]
+
+# Elasticsearch 설정
+ES_CONFIG = {
+    "host": "localhost",
+    "port": 9200,
+    "index": "news_articles",
+    "user": "elastic",
+    "password": "elastic123",
+    "use_ssl": False
+}

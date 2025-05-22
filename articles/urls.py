@@ -1,7 +1,9 @@
 from django.urls import path, include
-from .views import NewsArticlesAPIView, related_articles_by_cosine
+from . import views
 
 urlpatterns = [
-    path('<int:pk>/', NewsArticlesAPIView, name='get_article'),
-    path('<int:pk>/related/', related_articles_by_cosine, name='related-articles'),
+    path('', views.article_list, name='article-list'),
+    path('<int:pk>/', views.article_detail, name='get_article'),
+    path('<int:pk>/related/', views.related_articles, name='related-articles'),
+    path('api/search/', views.search_articles, name='search-articles'),
 ]

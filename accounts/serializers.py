@@ -1,8 +1,8 @@
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer
 from rest_framework import serializers
-from articles.models import ArticleLike, ArticleView, ArticleScrap, NewsArticles
-from articles.serializers import NewsArticlesSerializer, SimpleNewsArticlesSerializer
+from articles.models import ArticleLike, ArticleView, ArticleScrap, NewsArticle
+from articles.serializers import NewsArticleSerializer, SimpleNewsArticleSerializer
 from .models import User
 
 class CustomRegisterSerializer(RegisterSerializer):
@@ -37,20 +37,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'email', 'first_name', 'last_name', 'date_of_birth', 'is_active', 'created_at', 'updated_at']
 
-class UserLikedArticlesSerializer(serializers.ModelSerializer):
-    article = SimpleNewsArticlesSerializer(read_only=True)
+class UserLikedArticleSerializer(serializers.ModelSerializer):
+    article = SimpleNewsArticleSerializer(read_only=True)
     class Meta:
         model = ArticleLike
-        fields = ['article', 'created_at']
+        fields = ['article', 'liked_at']
 
-class UserViewedArticlesSerializer(serializers.ModelSerializer):
-    article = SimpleNewsArticlesSerializer(read_only=True)
+class UserViewedArticleSerializer(serializers.ModelSerializer):
+    article = SimpleNewsArticleSerializer(read_only=True)
     class Meta:
         model = ArticleView
         fields = ['article', 'viewed_at']
 
-class UserScrappedArticlesSerializer(serializers.ModelSerializer):
-    article = SimpleNewsArticlesSerializer(read_only=True)
+class UserScrappedArticleSerializer(serializers.ModelSerializer):
+    article = SimpleNewsArticleSerializer(read_only=True)
     class Meta:
         model = ArticleScrap
         fields = ['article', 'scrapped_at']

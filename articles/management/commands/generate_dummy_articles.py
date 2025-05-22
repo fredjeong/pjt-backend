@@ -2,7 +2,7 @@ import random
 import json
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from articles.models import NewsArticles
+from articles.models import NewsArticle
 
 CATEGORIES = ['정치', '경제', '사회', '문화', '기술', '스포츠', '연예']
 KEYWORDS_POOL = [
@@ -18,7 +18,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         for i in range(50):
-            NewsArticles.objects.create(
+            NewsArticle.objects.create(
                 title=f"테스트 뉴스 기사 {i+1}",
                 writer=f"기자{i%5+1}",
                 write_date=timezone.now(),

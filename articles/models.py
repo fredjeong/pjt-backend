@@ -9,7 +9,7 @@ from django.db import models
 from django.conf import settings
 
 
-class NewsArticles(models.Model):
+class NewsArticle(models.Model):
     title = models.CharField(max_length=200)
     writer = models.CharField(max_length=255)
     write_date = models.DateTimeField()
@@ -30,20 +30,20 @@ class NewsArticles(models.Model):
 
 class ArticleLike(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    article = models.ForeignKey(NewsArticles, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
+    article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE)
+    liked_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('user', 'article')  # 한 유저가 한 기사에 한 번만 좋아요
 
 class ArticleView(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    article = models.ForeignKey(NewsArticles, on_delete=models.CASCADE)
+    article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE)
     viewed_at = models.DateTimeField(auto_now_add=True)
 
 class ArticleScrap(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    article = models.ForeignKey(NewsArticles, on_delete=models.CASCADE)
+    article = models.ForeignKey(NewsArticle, on_delete=models.CASCADE)
     scrapped_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

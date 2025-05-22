@@ -6,13 +6,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import User
-from articles.models import ArticleLike, ArticleView, ArticleScrap, NewsArticles
+from articles.models import ArticleLike, ArticleView, ArticleScrap, NewsArticle
 from .serializers import (
     UserProfileSerializer,
-    UserLikedArticlesSerializer,
-    UserViewedArticlesSerializer,
-    UserScrappedArticlesSerializer,
-    SimpleNewsArticlesSerializer,
+    UserLikedArticleSerializer,
+    UserViewedArticleSerializer,
+    UserScrappedArticleSerializer,
+    SimpleNewsArticleSerializer,
 )
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import AuthenticationFailed, ValidationError
@@ -22,8 +22,12 @@ from rest_framework.decorators import permission_classes
 from utils import parse_embedding, cosine_similarity
 import numpy as np
 
+
+"""
+회원가입 및 로그인 관련
+"""
 # Create your views here.
-class CustomRegisterAPIView(RegisterView):
+class custom_register(RegisterView):
     serializer_class = CustomRegisterSerializer
     
     def create_jwt_response(self, user):
@@ -52,7 +56,8 @@ class CustomRegisterAPIView(RegisterView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-class CustomLoginAPIView(LoginView):
+
+class custom_login(LoginView):
     serializer_class = CustomLoginSerializer
     
     def create_jwt_response(self, user):
@@ -76,24 +81,180 @@ class CustomLoginAPIView(LoginView):
                 'detail': str(e)
             }, status=status.HTTP_401_UNAUTHORIZED)
 
+
+"""
+유저 상세 정보 조회
+"""
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def UserDetailWithArticlesAPIView(request, pk):
+def user_details(request, pk):
     user = get_object_or_404(User, pk=pk)
     user_data = UserProfileSerializer(user).data
-    liked_articles = ArticleLike.objects.filter(user=user)
-    viewed_articles = ArticleView.objects.filter(user=user)
-    scrapped_articles = ArticleScrap.objects.filter(user=user)
+    
+    liked_articles = ArticleLike.objects.filter(user=user).order_by('-liked_at') # 필요 시 뒤에 [:10]와 같은 식으로 추가
+    viewed_articles = ArticleView.objects.filter(user=user).order_by('-viewed_at')
+    scrapped_articles = ArticleScrap.objects.filter(user=user).order_by('-scrapped_at')
+    
     return Response({
         'user': user_data,
-        'liked_articles': UserLikedArticlesSerializer(liked_articles, many=True).data,
-        'viewed_articles': UserViewedArticlesSerializer(viewed_articles, many=True).data,
-        'scrapped_articles': UserScrappedArticlesSerializer(scrapped_articles, many=True).data,
+        'liked_articles': UserLikedArticleSerializer(liked_articles, many=True).data,
+        'viewed_articles': UserViewedArticleSerializer(viewed_articles, many=True).data,
+        'scrapped_articles': UserScrappedArticleSerializer(scrapped_articles, many=True).data,
     }, status=status.HTTP_200_OK)
 
+
+"""
+유저의 기사 조회
+"""
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def record_article_view(request):
+    article_url = request.data.get('url')
+    
+    if not article_url:
+        return Response(
+            {'error': 'URL이 필요합니다.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        article = NewsArticle.objects.get(url=article_url)
+
+        ArticleView.objects.get_or_create(
+            user=request.user,
+            article=article
+        )
+        
+        return Response(
+            {'message': '기사 조회 기록이 저장되었습니다.'},
+            status=status.HTTP_200_OK
+        )        
+    except NewsArticle.DoesNotExist:
+        return Response(
+            {'error': '해당 기사를 찾을 수 없습니다.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+"""
+유저의 기사 좋아요
+"""
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_article_like(request):
+    article_url = request.data.get('url')
+    
+    if not article_url:
+        return Response(
+            {'error': 'URL이 필요합니다.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        article = NewsArticle.objects.get(url=article_url)
+    except NewsArticle.DoesNotExist:
+        return Response(
+            {'error': '해당 기사를 찾을 수 없습니다.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    like, created = ArticleLike.objects.get_or_create(
+        user=request.user,
+        article=article
+    )
+    
+    if not created:
+        like.delete()
+        return Response(
+            {'message': '좋아요가 취소되었습니다.'},
+            status=status.HTTP_200_OK
+        )
+    
+    return Response(
+        {'message': '좋아요가 등록되었습니다.'},
+        status=status.HTTP_201_CREATED
+    )
+
+
+"""
+유저의 기사 스크랩
+"""
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def toggle_article_scrap(request):
+    article_url = request.data.get('url')
+    
+    if not article_url:
+        return Response(
+            {'error': 'URL이 필요합니다.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        article = NewsArticle.objects.get(url=article_url)
+    except NewsArticle.DoesNotExist:
+        return Response(
+            {'error': '해당 기사를 찾을 수 없습니다.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    scrap, created = ArticleScrap.objects.get_or_create(
+        user=request.user,
+        article=article
+    )
+    
+    if not created:
+        scrap.delete()
+        return Response(
+            {'message': '스크랩이 취소되었습니다.'},
+            status=status.HTTP_200_OK
+        )
+    
+    return Response(
+        {'message': '스크랩이 등록되었습니다.'},
+        status=status.HTTP_201_CREATED
+    )
+
+
+"""
+유저가 특정 기사에 좋아요를 눌렀는지 확인
+"""
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def recommend_articles_for_user(request, user_pk):
+def check_article_like(request):
+    article_url = request.query_params.get('url')
+    
+    if not article_url:
+        return Response(
+            {'error': 'URL이 필요합니다.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        article = NewsArticle.objects.get(url=article_url)
+    except NewsArticle.DoesNotExist:
+        return Response(
+            {'error': '해당 기사를 찾을 수 없습니다.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    is_liked = ArticleLike.objects.filter(
+        user=request.user,
+        article=article
+    ).exists()
+    
+    return Response({
+        'is_liked': is_liked
+    }, status=status.HTTP_200_OK)
+
+
+
+"""
+유저의 기록을 바탕으로 특정 기사 추천
+"""
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def recommended_articles(request, user_pk):
     try:
         user = User.objects.get(pk=user_pk)
     except User.DoesNotExist:
@@ -101,7 +262,7 @@ def recommend_articles_for_user(request, user_pk):
 
     # 최근 상호작용 기사 10개씩 가져오기 (중복 제거)
     viewed_ids = list(ArticleView.objects.filter(user=user).order_by('-viewed_at').values_list('article_id', flat=True)[:10])
-    liked_ids = list(ArticleLike.objects.filter(user=user).order_by('-created_at').values_list('article_id', flat=True)[:10])
+    liked_ids = list(ArticleLike.objects.filter(user=user).order_by('-liked_at').values_list('article_id', flat=True)[:10])
     scrapped_ids = list(ArticleScrap.objects.filter(user=user).order_by('-scrapped_at').values_list('article_id', flat=True)[:10])
     interacted_ids = list(set(viewed_ids + liked_ids + scrapped_ids))
 
@@ -112,7 +273,7 @@ def recommend_articles_for_user(request, user_pk):
     embeddings = []
     for article_id in interacted_ids:
         try:
-            article = NewsArticles.objects.get(pk=article_id)
+            article = NewsArticle.objects.get(pk=article_id)
             emb = parse_embedding(article.content_embedding)
             embeddings.append(emb)
         except Exception:
@@ -125,7 +286,7 @@ def recommend_articles_for_user(request, user_pk):
 
     # 유저가 상호작용하지 않은 기사만 추천 대상으로
     exclude_ids = set(interacted_ids)
-    candidates = NewsArticles.objects.exclude(pk__in=exclude_ids)
+    candidates = NewsArticle.objects.exclude(pk__in=exclude_ids)
     similarities = []
     for article in candidates:
         try:
@@ -138,6 +299,6 @@ def recommend_articles_for_user(request, user_pk):
     # 유사도 내림차순 정렬 후 상위 5개
     sorted_articles = sorted(similarities, key=lambda x: x[0], reverse=True)
     top_articles = [a for _, a in sorted_articles[:5]]
-    data = SimpleNewsArticlesSerializer(top_articles, many=True).data
+    data = SimpleNewsArticleSerializer(top_articles, many=True).data
 
     return Response(data)
